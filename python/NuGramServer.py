@@ -22,6 +22,7 @@ import urllib
 import httplib
 import simplejson.decoder
 import simplejson.encoder
+from xml.etree.cElementTree import XML
 
 ## Some exception classes
 
@@ -53,15 +54,10 @@ DEFAULT_GSERVER_PORT = 8102
 ## An object of this class acts as a proxy to NuGram Server.
 
 class GrammarServer:
-    def __init__(self, host = DEFAULT_GSERVER_HOST, port = DEFAULT_GSERVER_PORT):
+
+    def __init__(self, host=DEFAULT_GSERVER_HOST, port=DEFAULT_GSERVER_PORT):
         self.host = host
         self.port = port
-
-    def get_host(self):
-        return self.host
-
-    def get_port(self):
-        return self.port
 
     def create_session(self, username, password):
         return Session(self, username, password)
@@ -77,7 +73,7 @@ class Session:
         self.username = username
         self.password = password
         self.sessionId = None
-        self.get_sessionid()
+        self.initialize()
 
     def get_auth(self):
         return base64.b64encode(self.username + ':' + self.password)
@@ -88,12 +84,12 @@ class Session:
         else:
             data = urllib.urlencode(data)
 
-        connection = httplib.HTTPConnection(self.server.get_host(), self.server.get_port())
-        connection.request(mode, url, body = data, headers={'Authorization': 'Basic ' + self.get_auth()})
+        connection = httplib.HTTPConnection(self.server.host, self.server.port)
+        connection.request(mode, url, body=data, headers={'Authorization': 'Basic ' + self.get_auth()})
         response = connection.getresponse()
         return response.status, response.read()
 
-    def get_sessionid(self):
+    def initialize(self):
         status, content = self.request('/session', 'POST')
 
         if not (200 <= status < 300):
@@ -103,7 +99,7 @@ class Session:
                 raise InternalError(str(status))
             raise Error(str(status))
 
-        self.sessionId = content.split('"')[1] 
+        self.sessionId = XML(content).get('id')
         return self.sessionId
 
     ## This method uploads a source grammar to NuGram Server.
@@ -117,10 +113,10 @@ class Session:
         return self.instantiate(grammarPath)
 
     ## This method instantiates a dynamic grammar and loads it.
-    def instantiate(self, grammarPath, context = {}):
+    def instantiate(self, grammarPath, context={}):
         url = '/grammar/' + self.sessionId + '/' + grammarPath
 
-        jsonContext = simplejson.encoder.JSONEncoder().encode(context);
+        jsonContext = simplejson.encoder.JSONEncoder().encode(context)
         data = {'context': jsonContext, 'responseFormat': 'json'}
         status, content = self.request(url, 'POST', data)
      
@@ -181,12 +177,11 @@ class InstantiatedGrammar:
  
 
 
-## 
 ## A complete example
 ##
 ## Call the following function with your username and password for NuGram Server
 
-def test(username = 'user', password = 'passwd'):
+def test(username='user', password='passwd'):
     
     filename = 'testTest.abnf'
     grammar = '''\
@@ -238,4 +233,4 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         test(*sys.argv[1:])
     else:
-        usage();
+        usage()
