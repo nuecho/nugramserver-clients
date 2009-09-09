@@ -12,18 +12,23 @@ import java.util.Map;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+
 final class ServerSession implements Session
 {
     private String mAuthToken;
     private GrammarServer mServer;
     private String mSessionId;
 
-    public ServerSession(GrammarServer server, String username, String password) throws IOException
+    ServerSession(GrammarServer server, String authToken) throws IOException
     {
         mServer = server;
-        mAuthToken = (new Base64()).encode((username + ":" + password).getBytes());
-        System.err.println("auth = " + mAuthToken);
+        mAuthToken = authToken;
         initializeSession();
+    }
+
+    ServerSession(GrammarServer server, String username, String password) throws IOException
+    {
+        this(server, (new Base64()).encode((username + ":" + password).getBytes()));
     }
 
     private void initializeSession() throws IOException
@@ -31,6 +36,11 @@ final class ServerSession implements Session
         String url = mServer.getUrl() + "/session";
         String answer = sendHttpRequest(url, "POST", true, null, null);
         mSessionId = answer.split("\"")[1];
+    }
+
+    public String getSessionId()
+    {
+        return mSessionId;
     }
 
     public void disconnect()
@@ -46,13 +56,12 @@ final class ServerSession implements Session
         }
     }
 
-    
     @SuppressWarnings("unchecked")
     public InstantiatedGrammar instantiate(String grammarPath, JSONObject context) throws IOException
     {
         String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + grammarPath;
         String jsonContext = context.toJSONString();
-        
+
         Map data = new HashMap();
         data.put("responseFormat", "json");
         data.put("context", jsonContext);
@@ -74,11 +83,12 @@ final class ServerSession implements Session
     }
 
     @SuppressWarnings("unchecked")
-    public String sendHttpRequest(String url, String method, boolean needsAuthorization, Map data, String text) throws IOException
+    public String sendHttpRequest(String url, String method, boolean needsAuthorization, Map data, String text)
+            throws IOException
     {
         HttpURLConnection connection = (HttpURLConnection) (new java.net.URL(url)).openConnection();
         connection.setRequestMethod(method);
-        if  (needsAuthorization)
+        if (needsAuthorization)
         {
             connection.setRequestProperty("Authorization", "Basic " + mAuthToken);
         }
@@ -119,35 +129,33 @@ final class ServerSession implements Session
             throw new RuntimeException("com.nuecho.grammarserver.exception:" + connection.getResponseMessage());
         }
     }
-        
+
     private String readStreamAsString(InputStream inputStream) throws IOException
     {
         StringBuffer buffer = new java.lang.StringBuffer();
         BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream));
 
-        while (reader.ready()) {
+        while (reader.ready())
+        {
             buffer.append(reader.readLine()).append('\n');
         }
         return "" + buffer.toString();
     }
-    
-    
-    
-    private class Grammar implements InstantiatedGrammar 
+
+    private class Grammar implements InstantiatedGrammar
     {
         private JSONObject mData;
-        
+
         public Grammar(JSONObject data)
         {
             mData = data;
         }
 
-        
         public String getContent() throws IOException
         {
             return getContent(null);
         }
-        
+
         public String getContent(String format) throws IOException
         {
             return sendHttpRequest(getUrl(format), "GET", false, null, null);
@@ -162,7 +170,7 @@ final class ServerSession implements Session
             data.put("sentence", sentence);
             data.put("responseFormat", "json");
             String response = sendHttpRequest(url, "POST", true, data, null);
-            
+
             JSONObject jsonResponse = (JSONObject) JSONValue.parse(response);
             return jsonResponse.get("interpretation");
         }
@@ -176,7 +184,7 @@ final class ServerSession implements Session
         {
             assert (format == null || format.equals("abnf") || format.equals("grxml") || format.equals("gsl"));
             String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + mData.get("id");
-            if (format != null) 
+            if (format != null)
             {
                 url += "." + format;
             }
