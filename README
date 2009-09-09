@@ -1,0 +1,24 @@
+This repository provides client APIs to NuGram Hosted Server in various languages.
+
+The supported languages are currently:
+
+	- Java
+	- javascript (ECMAScript)
+	- Python/Jython
+
+There are more to come.
+
+NuGram Hosted Server (wwww.grammarserver.com) is a free hosted service for the management of static and dynamic 
+grammars, courtesy of Nu Echo Inc. It can be used to generate dynamic grammars, and interpret textual sentences.
+
+For any question or request, contact the NuGram team at nugram-support@nuecho.com. 
+The NuGram Platform website is http://nugram.nuecho.com
+
+The Nu Echo team
+
+
+---------------------------------------------------------
+
+This repository includes the json.simple package as obtained from: http://code.google.com/p/json-simple/. 
+We have included the accompanying license.
+
