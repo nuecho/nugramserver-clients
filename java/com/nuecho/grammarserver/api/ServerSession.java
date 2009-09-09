@@ -46,6 +46,8 @@ final class ServerSession implements Session
         }
     }
 
+    
+    @SuppressWarnings("unchecked")
     public InstantiatedGrammar instantiate(String grammarPath, JSONObject context) throws IOException
     {
         String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + grammarPath;
@@ -71,6 +73,7 @@ final class ServerSession implements Session
         sendHttpRequest(url, "PUT", true, null, content);
     }
 
+    @SuppressWarnings("unchecked")
     public String sendHttpRequest(String url, String method, boolean needsAuthorization, Map data, String text) throws IOException
     {
         HttpURLConnection connection = (HttpURLConnection) (new java.net.URL(url)).openConnection();
@@ -116,7 +119,7 @@ final class ServerSession implements Session
             throw new RuntimeException("com.nuecho.grammarserver.exception:" + connection.getResponseMessage());
         }
     }
-    
+        
     private String readStreamAsString(InputStream inputStream) throws IOException
     {
         StringBuffer buffer = new java.lang.StringBuffer();
@@ -139,11 +142,18 @@ final class ServerSession implements Session
             mData = data;
         }
 
+        
+        public String getContent() throws IOException
+        {
+            return getContent(null);
+        }
+        
         public String getContent(String format) throws IOException
         {
             return sendHttpRequest(getUrl(format), "GET", false, null, null);
         }
 
+        @SuppressWarnings("unchecked")
         public Object interpret(String sentence) throws IOException
         {
             assert (sentence != null);
@@ -155,6 +165,11 @@ final class ServerSession implements Session
             
             JSONObject jsonResponse = (JSONObject) JSONValue.parse(response);
             return jsonResponse.get("interpretation");
+        }
+
+        public String getUrl()
+        {
+            return getUrl(null);
         }
 
         public String getUrl(String format)
