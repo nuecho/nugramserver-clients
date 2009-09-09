@@ -95,13 +95,13 @@ final class ServerSession implements Session
         if (data != null || text != null)
         {
             String content = "";
-            StringBuffer buffer = new StringBuffer();
             if (text != null)
             {
-                buffer.append(text);
+                content = text;
             }
             else
             {
+                StringBuffer buffer = new StringBuffer();
                 for (Iterator iterator = data.keySet().iterator(); iterator.hasNext();)
                 {
                     String key = (String) iterator.next();
@@ -109,7 +109,6 @@ final class ServerSession implements Session
                     buffer.append("&").append(key).append("=").append(data.get(key).toString());
                 }
                 content = buffer.substring(1);
-                System.err.println(content);
             }
             connection.setDoOutput(true);
             OutputStreamWriter writer = new java.io.OutputStreamWriter(connection.getOutputStream());
