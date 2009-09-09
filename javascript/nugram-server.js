@@ -14,7 +14,9 @@
  *            object.
  *
  *   * Base64 - Needed for HTTP Basic authorization. The accompanying file
- *            'base64.js' provides an implementation of this object.
+ *            'base64.js' provides an implementation of this object. Not required
+ *			  if the authorization token is given explicitly in argument
+ *			  to the GrammarServer.createSession function (see documentation below). 
  * 
  * See at the end of this file for a test example. The most important functions
  * are documented below.
@@ -29,7 +31,7 @@
 
 
 /** 
-    This function creates an object that acts as a proxy to NuGram Server.
+    This function creates an object that acts as a proxy to NuGram Hosted Server.
     @param server the server name (defaults to 'www.grammarserver.com')
     @param port the server port (defaults to 8082)
 **/
@@ -51,15 +53,22 @@ GrammarServer.prototype.getUrl = function () {
 };
 
 /** 
-    This function initiates a new session with NuGram Server and returns
+    This function initiates a new session with NuGram Hosted Server and returns
     a GrammarServerSession object.
+    
+    If the password is omitted, the first argument must hold the
+    authorization token for NuGram Hosted Server (the Base64 encoding
+    of the string "username:password".
 
-    @param username the account name on NuGram Server
+    @param username the account name on NuGram Hosted Server
     @param password the password for the account
 **/
     
 GrammarServer.prototype.createSession = function(username, password) {
-    var authToken = Base64.encode(username + ":" + password);
+	var authToken = username;
+	if (password) {
+    	var authToken = Base64.encode(username + ":" + password);
+   	}
     return new GrammarServerSession(this, authToken);
 };
 
@@ -80,8 +89,12 @@ GrammarServerSession.prototype.isConnected = function() {
     return this.state == 'connected';
 };
 
+GrammarServerSession.prototype.getSessionId = function() {
+	return this.sessionId;
+};
+
 /**
-   Uploads a grammar to NuGram Server.
+   Uploads a grammar to NuGram Hosted Server.
    @param grammarPath the grammar path that will be used to refer to the grammar
    @param the text of the ABNF grammar
 
@@ -98,7 +111,7 @@ GrammarServerSession.prototype.upload = function(grammarPath, content) {
 
 
 /**
-   Loads a static grammar on NuGram Server. This is usually done when the application
+   Loads a static grammar on NuGram Hosted Server. This is usually done when the application
    wants to do some semantic interpretation using the grammar. Returns an InstantiatedGrammar 
    object.
 
@@ -133,7 +146,7 @@ GrammarServerSession.prototype.instantiate = function (grammarPath, data) {
 };
 
 /**
-   Terminates the session with NuGram Server.
+   Terminates the session with NuGram Hosted Server.
 **/
 GrammarServerSession.prototype.disconnect = function() {
     this.state = 'disconnected';

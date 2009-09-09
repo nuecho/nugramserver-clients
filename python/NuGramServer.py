@@ -51,7 +51,7 @@ DEFAULT_GSERVER_HOST = "localhost"
 DEFAULT_GSERVER_PORT = 8102
 
 
-## An object of this class acts as a proxy to NuGram Server.
+## An object of this class acts as a proxy to NuGram Hosted Server.
 
 class GrammarServer:
 
@@ -102,13 +102,13 @@ class Session:
         self.sessionId = XML(content).get('id')
         return self.sessionId
 
-    ## This method uploads a source grammar to NuGram Server.
+    ## This method uploads a source grammar to NuGram Hosted Server.
     def upload(self, name, content):
         url = '/grammar/' + name
 
         return self.request(url, 'PUT', text=content)
 
-    ## This method requests NuGram Server to load a static grammar.
+    ## This method requests NuGram Hosted Server to load a static grammar.
     def load(self, grammarPath):
         return self.instantiate(grammarPath)
 
@@ -132,7 +132,7 @@ class Session:
         return self.request(url, 'DELETE')
 
 
-## Objects of this class act as proxy for instantiated grammars on NuGram Server.
+## Objects of this class act as proxy for instantiated grammars on NuGram Hosted Server.
 
 class InstantiatedGrammar:
 
@@ -179,7 +179,7 @@ class InstantiatedGrammar:
 
 ## A complete example
 ##
-## Call the following function with your username and password for NuGram Server
+## Call the following function with your username and password for NuGram Hosted Server
 
 def test(username='user', password='passwd'):
     
@@ -202,7 +202,7 @@ public $digits  =
 '''
 
     server = GrammarServer()
-    print "Opening a session with NuGram Server"
+    print "Opening a session with NuGram Hosted Server"
     session = server.create_session(username, password)
     print "Uploading a grammar.."
     session.upload(filename, grammar)
