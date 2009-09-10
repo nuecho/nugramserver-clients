@@ -34,8 +34,10 @@ final class ServerSession implements Session
     private void initializeSession() throws IOException
     {
         String url = mServer.getUrl() + "/session";
-        String answer = sendHttpRequest(url, "POST", true, null, null);
-        mSessionId = answer.split("\"")[1];
+        String answer = sendHttpRequest(url, "POST", true, null, "responseFormat=json");
+        JSONObject session = (JSONObject) JSONValue.parse(answer);
+        
+        mSessionId = (String) ((JSONObject) session.get("session")).get("id");
     }
 
     public String getSessionId()

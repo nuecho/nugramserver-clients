@@ -24,7 +24,6 @@ import base64
 import urllib
 import httplib
 from simplejson import JSONEncoder, JSONDecoder
-from xml.dom import minidom, Node
 
 ## Some exception classes
 
@@ -95,7 +94,8 @@ class Session:
         return response.status, response.read()
 
     def initialize(self):
-        status, content = self.request('/session', 'POST')
+        status, content = self.request('/session', 'POST', {'responseFormat': 'json'})
+        print "content = ", content
 
         if not (200 <= status < 300):
             if (400 <= status < 500) :
@@ -104,9 +104,10 @@ class Session:
                 raise InternalError(str(status))
             raise Error(str(status))
 
-        xml = minidom.parseString(content)
-        if xml:
-            self.sessionId = xml.documentElement.getAttribute('id')
+        result = JSONDecoder().decode(content)
+        
+        if result:
+            self.sessionId = result['session']['id'];
             return self.sessionId
         else:
             return None

@@ -78,10 +78,10 @@ function GrammarServerSession(server, authToken) {
     this.state = 'disconnected';
     this.sessionId = false;
 
-    var result = __http_request(server.getUrl() + '/session', 'POST', authToken);
+    var result = __http_request(server.getUrl() + '/session', 'POST', authToken, {responseFormat: 'json'});
     if (result) {
         this.state = 'connected';
-        this.sessionId = (new XML(result)).@id;
+        this.sessionId = JSON.parse(result).session.id;
     }
 };
 
