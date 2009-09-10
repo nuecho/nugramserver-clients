@@ -8,6 +8,9 @@
 # between Python and Jython. It has been tested with Python 2.6 and
 # Jython 2.5.0.
 #
+# simplejson can be found here:
+#    http://code.google.com/p/simplejson
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -20,9 +23,8 @@ import sys
 import base64
 import urllib
 import httplib
-import simplejson.decoder
-import simplejson.encoder
-from xml.etree.cElementTree import XML
+from simplejson import JSONEncoder, JSONDecoder
+from xml.dom import minidom, Node
 
 ## Some exception classes
 
@@ -45,10 +47,8 @@ class GetGrammarError(Error):
     pass
 
 
-#DEFAULT_GSERVER_HOST = "www.grammarserver.com"
-#DEFAULT_GSERVER_PORT = 8082
-DEFAULT_GSERVER_HOST = "localhost"
-DEFAULT_GSERVER_PORT = 8102
+DEFAULT_GSERVER_HOST = "www.grammarserver.com"
+DEFAULT_GSERVER_PORT = 8082
 
 
 ## An object of this class acts as a proxy to NuGram Hosted Server.
@@ -61,6 +61,9 @@ class GrammarServer:
 
     def create_session(self, username, password):
         return Session(self, username, password)
+
+    def get_url():
+        return "http://" + self.host + ":" + self.port
 
 
 
@@ -75,8 +78,10 @@ class Session:
         self.sessionId = None
         self.initialize()
 
+
     def get_auth(self):
         return base64.b64encode(self.username + ':' + self.password)
+
 
     def request(self, url, mode, data={}, text=''):
         if text:
@@ -99,8 +104,18 @@ class Session:
                 raise InternalError(str(status))
             raise Error(str(status))
 
-        self.sessionId = XML(content).get('id')
+        xml = minidom.parseString(content)
+        if xml:
+            self.sessionId = xml.documentElement.getAttribute('id')
+            return self.sessionId
+        else:
+            return None
+
+
+    ## Returns the session ID
+    def get_id():
         return self.sessionId
+
 
     ## This method uploads a source grammar to NuGram Hosted Server.
     def upload(self, name, content):
@@ -108,22 +123,24 @@ class Session:
 
         return self.request(url, 'PUT', text=content)
 
+
     ## This method requests NuGram Hosted Server to load a static grammar.
     def load(self, grammarPath):
         return self.instantiate(grammarPath)
+
 
     ## This method instantiates a dynamic grammar and loads it.
     def instantiate(self, grammarPath, context={}):
         url = '/grammar/' + self.sessionId + '/' + grammarPath
 
-        jsonContext = simplejson.encoder.JSONEncoder().encode(context)
+        jsonContext = JSONEncoder().encode(context)
         data = {'context': jsonContext, 'responseFormat': 'json'}
         status, content = self.request(url, 'POST', data)
      
         if not (200 <= status < 300):
             raise InstantiationError(str(status))
         
-        response = simplejson.decoder.JSONDecoder().decode(content)
+        response = eval(content)
 
         return InstantiatedGrammar(self, response['grammar'])
 
@@ -142,6 +159,15 @@ class InstantiatedGrammar:
         self.session = session
         self.grammarInfo = grammarInfo
 
+    
+    ## Returns the URL of the grammar
+    def get_url(extension='abnf'):
+        url = self.session.server.get_url()
+        if extension:
+            url += "." + extension
+        return url
+
+
     ## Retrieves the source representation of the grammar in the 
     ## requested format ('abnf', 'grxml', or 'gsl')
     def get_content(self, extension='abnf'):
@@ -157,6 +183,7 @@ class InstantiatedGrammar:
 
         return content
 
+
     ## Computes the semantic interpretation of the given sentence
     ## (which must a string). Returns a Python object of 'False' if
     ## the sentence cannot be parsed by the grammar.
@@ -171,7 +198,7 @@ class InstantiatedGrammar:
         if not (200 <= status < 300):
             raise InterpretationError(str(status))
 
-        response = simplejson.decoder.JSONDecoder().decode(content)
+        response = JSONDecoder().decode(content)
 
         return response['interpretation']
  
