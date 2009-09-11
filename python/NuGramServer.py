@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # NuGram Hosted Server client API in Python.
 #
@@ -145,6 +145,7 @@ class Session:
 
         return InstantiatedGrammar(self, response['grammar'])
 
+    ## Terminates the session with NuGram Hosted Server
     def disconnect(self):
         url = '/session/' + self.sessionId
         return self.request(url, 'DELETE')
