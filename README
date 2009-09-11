@@ -5,6 +5,7 @@ The supported languages are currently:
 	- Java
 	- javascript (ECMAScript)
 	- Python/Jython
+	- Ruby/JRuby
 
 There are more to come.
 
