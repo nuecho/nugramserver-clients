@@ -11,7 +11,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 
-require 'rubygems'
+# This import is optional, as 'json' may be part of the standard libraryx
+require 'rubygems' 
 require 'json'
 require 'net/http'
 require 'uri'
@@ -183,6 +184,7 @@ end
 # server = GrammarServer.new()
 # session = server.create_session("username", "password")
 # grammar = session.instantiate("digits.abnf", {'digits' => ["one", "two", "three"]})
+# puts "grammar url = ", grammar.get_url('grxml')
 # puts grammar.get_content("grxml")
 # puts grammar.interpret('one')
 # session.disconnect
