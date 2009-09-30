@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # NuGram Hosted Server client API in Python.
 #
@@ -46,7 +47,7 @@ class GetGrammarError(Error):
     pass
 
 
-DEFAULT_GSERVER_HOST = "www.grammarserver.com"
+DEFAULT_GSERVER_HOST = 'www.grammarserver.com'
 DEFAULT_GSERVER_PORT = 8082
 
 
@@ -62,7 +63,7 @@ class GrammarServer:
         return Session(self, username, password)
 
     def get_url():
-        return "http://" + self.host + ":" + self.port
+        return 'http://' + self.host + ':' + self.port
 
 
 
@@ -89,28 +90,28 @@ class Session:
             data = urllib.urlencode(data)
 
         connection = httplib.HTTPConnection(self.server.host, self.server.port)
-        connection.request(mode, url, body=data, headers={'Authorization': 'Basic ' + self.get_auth()})
+        connection.request(
+                mode, url, body=data,
+                headers={'Authorization': 'Basic ' + self.get_auth()})
         response = connection.getresponse()
         return response.status, response.read()
 
     def initialize(self):
-        status, content = self.request('/session', 'POST', {'responseFormat': 'json'})
-        print "content = ", content
+        status, content = self.request(
+                '/session', 'POST', {'responseFormat': 'json'})
 
         if not (200 <= status < 300):
-            if (400 <= status < 500) :
+            if 400 <= status < 500:
                 raise AuthentificationError(str(status))
-            if (500 <= status < 600) :
+            if 500 <= status < 600:
                 raise InternalError(str(status))
             raise Error(str(status))
 
         result = JSONDecoder().decode(content)
         
         if result:
-            self.sessionId = result['session']['id'];
+            self.sessionId = result['session']['id']
             return self.sessionId
-        else:
-            return None
 
 
     ## Returns the session ID
@@ -155,7 +156,8 @@ class Session:
         return self.request(url, 'DELETE')
 
 
-## Objects of this class act as proxy for instantiated grammars on NuGram Hosted Server.
+## Objects of this class act as proxy for instantiated grammars on NuGram
+## Hosted Server.
 
 class InstantiatedGrammar:
 
@@ -170,14 +172,15 @@ class InstantiatedGrammar:
     def get_url(extension='abnf'):
         url = self.session.server.get_url()
         if extension:
-            url += "." + extension
+            url += '.' + extension
         return url
 
 
     ## Retrieves the source representation of the grammar in the 
     ## requested format ('abnf', 'grxml', or 'gsl')
     def get_content(self, extension='abnf'):
-        url = '/grammar:' + self.session.username + '/' + self.session.sessionId + '/' + self.grammarInfo['id']
+        url = ('/grammar:' + self.session.username + '/'
+               + self.session.sessionId + '/' + self.grammarInfo['id'])
         
         if extension: 
             url += '.' + extension
@@ -194,7 +197,8 @@ class InstantiatedGrammar:
     ## (which must a string). Returns a Python object of 'False' if
     ## the sentence cannot be parsed by the grammar.
     def interpret(self, sentence):
-        url = '/interpretation:' + self.session.username + '/' + self.session.sessionId + '/' + self.grammarInfo['id']
+        url = ('/interpretation:' + self.session.username + '/'
+               + self.session.sessionId + '/' + self.grammarInfo['id'])
 
         data = {'sentence': sentence}
         data['responseFormat'] = 'json'
@@ -212,9 +216,13 @@ class InstantiatedGrammar:
 
 ## A complete example
 ##
-## Call the following function with your username and password for NuGram Hosted Server
+## Call the following function with your username and password for NuGram
+## Hosted Server
 
-def test(username='user', password='passwd'):
+def test(username='user', password='passwd', write=sys.stdout.write):
+
+    def step(text):
+        write('\n' + text + '...\n')
     
     filename = 'testTest.abnf'
     grammar = '''\
@@ -235,31 +243,34 @@ public $digits  =
 '''
 
     server = GrammarServer()
-    print "Opening a session with NuGram Hosted Server"
+    step("Opening a session with NuGram Hosted Server")
     session = server.create_session(username, password)
-    print "Uploading a grammar.."
+    write("Session ID = " + session.sessionId + '\n')
+    step("Uploading a grammar")
     session.upload(filename, grammar)
 
-    print "Instantiating the dynamic grammar.."
-    grammar = session.instantiate(filename,  {'digits':  ["one", "two", "three", "four"]} )
-    otherGrammar = session.instantiate(filename, {'digits':  ["one", "two", "three", "four"]})
+    step("Instantiating the dynamic grammar")
+    grammar = session.instantiate(
+            filename,  {'digits':  ["one", "two", "three", "four"]} )
+    otherGrammar = session.instantiate(
+            filename, {'digits':  ["one", "two", "three", "four"]})
 
-    print "Representation of the instantiated grammar in XML form  .."
-    print grammar.get_content(extension='grxml')
+    step("Representation of the instantiated grammar in XML form")
+    write(grammar.get_content(extension='grxml') + '\n')
     
-    print "Interpreting the first grammar.."
-    print grammar.interpret('one')
+    step("Interpreting the first grammar")
+    write(str(grammar.interpret('one')) + '\n')
 
-    print "Interpreting the second grammar.."
-    print otherGrammar.interpret('two')
-    print otherGrammar.interpret('no match')
+    step("Interpreting the second grammar")
+    write(str(otherGrammar.interpret('two')) + '\n')
+    write(str(otherGrammar.interpret('no match')) + '\n')
 
-    print "Terminating the session.."
+    step("Terminating the session")
     session.disconnect()
 
 
 def usage():
-    print "Usage: python NuGramServer.py username password"
+    sys.stdout.write("Usage: python NuGramServer.py username password\n")
 
 
 if __name__ == '__main__':
