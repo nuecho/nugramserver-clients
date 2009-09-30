@@ -106,6 +106,10 @@ class GrammarServerSession
   end
 
   ## This method instantiates a dynamic grammar and loads it.
+  ## The 'context' argument is expected to be a hash (dictionary) that
+  ## maps strings to values. Each value must be convertible to standard JSON.
+  ## Each key in the context must correspond to the name of a variable in the
+  ## ABNF template.
   def instantiate(grammarPath, context)
     Net::HTTP.start(@server.host, @server.port) {|http|
       req = Net::HTTP::Post.new("/grammar/#{@sessionid}/#{grammarPath}")

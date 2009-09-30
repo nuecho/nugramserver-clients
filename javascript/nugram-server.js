@@ -125,7 +125,11 @@ GrammarServerSession.prototype.load = function(grammarPath) {
 /**
    Instantiates a dynamic grammar with the given data. Returns an InstantiatedGrammar
    object upon successful instantiation.
-   
+
+   The 'data' argument is expected to be an object. Each property in
+   the object must correspond to the name of a variable in the ABNF
+   template.
+    
    @param grammarPath the path of the grammar to instantiate
    @param the data used to populate the dynamic grammar template (the instantiation context)
 **/

@@ -131,6 +131,10 @@ class Session:
 
 
     ## This method instantiates a dynamic grammar and loads it.
+    ## The 'context' argument is expected to be a dictionary that
+    ## maps strings to values. Each value must be convertible to JSON.
+    ## Each key in the context must correspond to the name of a variable in the
+    ## ABNF template.
     def instantiate(self, grammarPath, context={}):
         url = '/grammar/' + self.sessionId + '/' + grammarPath
 
