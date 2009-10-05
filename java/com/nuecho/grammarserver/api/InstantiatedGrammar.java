@@ -32,7 +32,7 @@ public interface InstantiatedGrammar
      * @return the grammar source code
      * @throws IOException
      */
-    public String getContent() throws IOException;
+    public String getContent() throws GrammarServerException;
 
     /**
      * Returns the source code of the grammar in the given format.
@@ -41,7 +41,7 @@ public interface InstantiatedGrammar
      * @return the grammar source code
      * @throws IOException
      */
-    public String getContent(String format) throws IOException;
+    public String getContent(String format) throws GrammarServerException;
 
     /**
      * Computes the semantic interpretation of the given sentence (a string)
@@ -51,5 +51,5 @@ public interface InstantiatedGrammar
      * @return a JSONArray object or Boolean.FALSE
      * @throws IOException
      */
-    public Object interpret(String sentence) throws IOException;
+    public Object interpret(String sentence) throws GrammarServerException;
 }

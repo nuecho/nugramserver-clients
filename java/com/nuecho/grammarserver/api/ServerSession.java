@@ -5,13 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 final class ServerSession implements Session
 {
@@ -19,24 +21,24 @@ final class ServerSession implements Session
     private GrammarServer mServer;
     private String mSessionId;
 
-    ServerSession(GrammarServer server, String authToken) throws IOException
+    ServerSession(GrammarServer server, String authToken) throws GrammarServerException
     {
         mServer = server;
         mAuthToken = authToken;
         initializeSession();
     }
 
-    ServerSession(GrammarServer server, String username, String password) throws IOException
+    ServerSession(GrammarServer server, String username, String password) throws GrammarServerException
     {
         this(server, (new Base64()).encode((username + ":" + password).getBytes()));
     }
 
-    private void initializeSession() throws IOException
+    private void initializeSession() throws GrammarServerException
     {
         String url = mServer.getUrl() + "/session";
         String answer = sendHttpRequest(url, "POST", true, null, "responseFormat=json");
         JSONObject session = (JSONObject) JSONValue.parse(answer);
-        
+
         mSessionId = (String) ((JSONObject) session.get("session")).get("id");
     }
 
@@ -47,19 +49,33 @@ final class ServerSession implements Session
 
     public void disconnect()
     {
-        String url = mServer.getUrl() + "/session/" + mSessionId;
         try
         {
+            String url = mServer.getUrl() + "/session/" + mSessionId;
             sendHttpRequest(url, "DELETE", true, null, null);
         }
-        catch (IOException e)
+        catch (GrammarServerException exception)
         {
             // do nothing
         }
     }
 
+    public InstantiatedGrammar instantiate(String grammarPath, String jsonContext) throws GrammarServerException
+    {
+        try
+        {
+            Object context = new JSONParser().parse(jsonContext);
+            assert context instanceof JSONObject;
+            return instantiate(grammarPath, (JSONObject) context);
+        }
+        catch (ParseException exception)
+        {
+            throw new GrammarServerException("Invalid JSON context", exception);
+        }
+    }
+
     @SuppressWarnings("unchecked")
-    public InstantiatedGrammar instantiate(String grammarPath, JSONObject context) throws IOException
+    public InstantiatedGrammar instantiate(String grammarPath, JSONObject context) throws GrammarServerException
     {
         String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + grammarPath;
         String jsonContext = context.toJSONString();
@@ -73,12 +89,12 @@ final class ServerSession implements Session
         return new Grammar((JSONObject) grammarData.get("grammar"));
     }
 
-    public InstantiatedGrammar load(String grammarPath) throws IOException
+    public InstantiatedGrammar load(String grammarPath) throws GrammarServerException
     {
         return instantiate(grammarPath, new JSONObject());
     }
 
-    public void upload(String grammarPath, String content) throws IOException
+    public void upload(String grammarPath, String content) throws GrammarServerException
     {
         String url = mServer.getUrl() + "/grammar/" + grammarPath;
         sendHttpRequest(url, "PUT", true, null, content);
@@ -86,48 +102,60 @@ final class ServerSession implements Session
 
     @SuppressWarnings("unchecked")
     public String sendHttpRequest(String url, String method, boolean needsAuthorization, Map data, String text)
-            throws IOException
+            throws GrammarServerException
     {
-        HttpURLConnection connection = (HttpURLConnection) (new java.net.URL(url)).openConnection();
-        connection.setRequestMethod(method);
-        if (needsAuthorization)
+        HttpURLConnection connection;
+        try
         {
-            connection.setRequestProperty("Authorization", "Basic " + mAuthToken);
-        }
-        if (data != null || text != null)
-        {
-            String content = "";
-            if (text != null)
+            connection = (HttpURLConnection) (new java.net.URL(url)).openConnection();
+            connection.setRequestMethod(method);
+            if (needsAuthorization)
             {
-                content = text;
+                connection.setRequestProperty("Authorization", "Basic " + mAuthToken);
+            }
+            if (data != null || text != null)
+            {
+                String content = "";
+                if (text != null)
+                {
+                    content = text;
+                }
+                else
+                {
+                    StringBuffer buffer = new StringBuffer();
+                    for (Iterator iterator = data.keySet().iterator(); iterator.hasNext();)
+                    {
+                        String key = (String) iterator.next();
+                        
+                        buffer.append("&").append(key).append("=").append(data.get(key).toString());
+                    }
+                    content = buffer.substring(1);
+                }
+                connection.setDoOutput(true);
+                OutputStreamWriter writer = new java.io.OutputStreamWriter(connection.getOutputStream());
+                writer.write(content);
+                writer.close();
+            }
+            connection.setConnectTimeout(5000);
+            if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 300)
+            {
+                String response = readStreamAsString(connection.getInputStream());
+                connection.disconnect();
+                return response;
             }
             else
             {
-                StringBuffer buffer = new StringBuffer();
-                for (Iterator iterator = data.keySet().iterator(); iterator.hasNext();)
-                {
-                    String key = (String) iterator.next();
-
-                    buffer.append("&").append(key).append("=").append(data.get(key).toString());
-                }
-                content = buffer.substring(1);
+                connection.disconnect();
+                throw new GrammarServerException("com.nuecho.grammarserver.exception:" + connection.getResponseMessage());
             }
-            connection.setDoOutput(true);
-            OutputStreamWriter writer = new java.io.OutputStreamWriter(connection.getOutputStream());
-            writer.write(content);
-            writer.close();
         }
-        connection.setConnectTimeout(5000);
-        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 300)
+        catch (MalformedURLException exception)
         {
-            String response = readStreamAsString(connection.getInputStream());
-            connection.disconnect();
-            return response;
+            throw new GrammarServerException("Invalid URL", exception);
         }
-        else
+        catch (IOException exception)
         {
-            connection.disconnect();
-            throw new RuntimeException("com.nuecho.grammarserver.exception:" + connection.getResponseMessage());
+            throw new GrammarServerException("Communication error with grammarserver", exception);
         }
     }
 
@@ -152,18 +180,18 @@ final class ServerSession implements Session
             mData = data;
         }
 
-        public String getContent() throws IOException
+        public String getContent() throws GrammarServerException
         {
             return getContent(null);
         }
 
-        public String getContent(String format) throws IOException
+        public String getContent(String format) throws GrammarServerException
         {
             return sendHttpRequest(getUrl(format), "GET", false, null, null);
         }
 
         @SuppressWarnings("unchecked")
-        public Object interpret(String sentence) throws IOException
+        public Object interpret(String sentence) throws GrammarServerException
         {
             assert (sentence != null);
             String url = mServer.getUrl() + "/interpretation/" + mSessionId + "/" + mData.get("id");

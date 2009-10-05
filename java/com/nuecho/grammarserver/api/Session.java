@@ -3,6 +3,7 @@ package com.nuecho.grammarserver.api;
 import java.io.IOException;
 
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 
 /**
  * Objects implementing this interface represent opened sessions with NuGram
@@ -24,7 +25,7 @@ public interface Session
      * @param content the source ABNF grammar to upload
      * @throws IOException
      */
-    public void upload(String grammarPath, String content) throws IOException;
+    public void upload(String grammarPath, String content) throws GrammarServerException;
 
     /**
      * Instructs NuGram Hosted Server to load the given grammar in memory. his
@@ -35,7 +36,7 @@ public interface Session
      * @return an InstantiatedGrammar object
      * @throws IOException
      */
-    public InstantiatedGrammar load(String grammarPath) throws IOException;
+    public InstantiatedGrammar load(String grammarPath) throws GrammarServerException;
 
     /**
      * Instantiates a dynamic grammar with the given data. Returns an
@@ -47,8 +48,20 @@ public interface Session
      * @return an InstantiatedGrammar object
      * @throws IOException
      */
-    public InstantiatedGrammar instantiate(String grammarPath, JSONObject data) throws IOException;
+    public InstantiatedGrammar instantiate(String grammarPath, JSONObject data) throws GrammarServerException;
 
+    /**
+     * Instantiates a dynamic grammar with the given data, encoded as a JSON string. Returns an
+     * InstantiatedGrammar object upon successful instantiation.
+     * 
+     * @param grammarPath the path of the grammar to instantiate
+     * @param the data used to populate the dynamic grammar template (the
+     * instantiation context) encoded as a JSON string
+     * @return an InstantiatedGrammar object
+     * @throws IOException
+     */
+    public InstantiatedGrammar instantiate(String grammarPath, String data) throws GrammarServerException;
+    
     /**
      * Terminates the session with NuGram Server.
      */

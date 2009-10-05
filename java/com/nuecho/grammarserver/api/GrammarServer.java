@@ -23,8 +23,9 @@ public final class GrammarServer
         this(DEFAULT_GRAMMARSERVER_SERVER, DEFAULT_GRAMMARSERVER_PORT);
     }
 
-    /** 
-     * Creates a new NuGram Hosted Server instance from explicit server name and port).
+    /**
+     * Creates a new NuGram Hosted Server instance from explicit server name and
+     * port).
      * @param serverName
      * @param port
      */
@@ -45,8 +46,8 @@ public final class GrammarServer
     }
 
     /**
-     * Returns the NuGram Hosted Server URL.  
-     * @return 
+     * Returns the NuGram Hosted Server URL.
+     * @return
      */
     public String getUrl()
     {
@@ -58,14 +59,21 @@ public final class GrammarServer
      * 
      * @param username the NuGram Hosted Server username
      * @param password the NuGram Hosted Server password
-     * @return a new session 
+     * @return a new session
      * @throws IOException
      */
-    public Session createSession(String username, String password) throws IOException
+    public Session createSession(String username, String password) throws GrammarServerException
     {
-        return new ServerSession(this, username, password);
+        try
+        {
+            return new ServerSession(this, username, password);
+        }
+        catch (GrammarServerException exception)
+        {
+            throw new GrammarServerException("Unable to create session", exception);
+        }
     }
-    
+
     /**
      * Creates a new session on NuGram Hosted Server.
      * 
@@ -73,7 +81,7 @@ public final class GrammarServer
      * @return
      * @throws IOException
      */
-    public Session createSession(String authToken) throws IOException 
+    public Session createSession(String authToken) throws GrammarServerException
     {
         return new ServerSession(this, authToken);
     }
