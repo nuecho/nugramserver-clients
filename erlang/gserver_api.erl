@@ -19,7 +19,7 @@
 
 %% Public API
 
--export([create_session/2, create_session/4,
+-export([connect/2, connect/4,
 	 disconnect/1, 
 	 upload_grammar/3,
 	 activate_grammar/2,
@@ -38,10 +38,10 @@
 
 %%% Initiates a new session with NuGram Hosted Server
 %%% Returns a tuple representing a session.
-create_session(Username, Password) ->
-    create_session(?GRAMMARSERVER_HOST, ?GRAMMARSERVER_PORT, Username, Password).
+connect(Username, Password) ->
+    connect(?GRAMMARSERVER_HOST, ?GRAMMARSERVER_PORT, Username, Password).
 
-create_session(Host, Port, Username, Password)
+connect(Host, Port, Username, Password)
   when is_integer(Port) andalso is_list(Host) ->
     Server = Host ++ ":" ++ integer_to_list(Port),
     Session = #gserver_session{server = Server, username = Username, password = Password},
@@ -51,14 +51,15 @@ create_session(Host, Port, Username, Password)
     Session#gserver_session{id = Id}.
 
 
-%%% D
-delete_session(Session = #gserver_session{}) ->
+%%% Terminates the session with NuGram Hosted Server.
+disconnect(Session = #gserver_session{}) ->
     Request = {server_url(Session, "/session/" ++ Session#gserver_session.id), 
 	       server_request_headers(Session)},
     {ok, {{_,200,_}, _Headers, _Content}} = http:request(delete, Request, [{timeout, 2000}], []),
     ok.
 
 
+%%% Uploads a source grammar to NuGram Hosted Server
 upload_grammar(Session = #gserver_session{}, GrammarPath, Content) ->
     Request = server_request(Session,
 			     "/grammar/" ++ yaws_api:url_encode(GrammarPath),
@@ -67,22 +68,11 @@ upload_grammar(Session = #gserver_session{}, GrammarPath, Content) ->
     {ok, {{_, 201, _}, _, _}} = http:request(put, Request, [{timeout, 2000}], []),
     ok.
 
-server_url(Session, Path) ->
-    "http://" ++ Session#gserver_session.server ++ Path.
-
-server_request(Session, Path, Data) ->
-    server_request(Session, Path, Data, "application/x-www-form-urlencoded").
-server_request(Session, Path, Data, ContentType) ->
-    {server_url(Session, Path),  server_request_headers(Session), ContentType, Data}.
-
-
-server_request_headers(Session) ->
-    [auth_header(Session), {"Host", Session#gserver_session.server}].
-
-
+%%% This method requests NuGram Hosted Server to load a static grammar.
 activate_grammar(Session = #gserver_session{}, GrammarPath) ->
     instantiate_grammar(Session, GrammarPath, defaultObject).
 
+%%% This method instantiates a dynamic grammar and loads it.
 instantiate_grammar(Session = #gserver_session{}, GrammarPath, Context) ->
     JsonObject = json_utils:expand(Context),
     Request = server_request(Session,
@@ -96,13 +86,19 @@ instantiate_grammar(Session = #gserver_session{}, GrammarPath, Context) ->
     #gserver_grammar{session = Session, id = Id, grammarUrl = GrammarUrl, interpreterUrl = InterpreterUrl}.
 
 
+
+%%% Returns the URL of the instantiated grammar
 grammar_url(Grammar = #gserver_grammar{}) ->
     grammar_url(Grammar, abnf).
 
+%%% Returns the URL of the instantiated grammar in the given format (abnf, grxml, or gsl)
 grammar_url(Grammar = #gserver_grammar{}, Type) when is_atom(Type) ->
+    true = lists:member(Type, [abnf,grxml,gsl]),
     lists:flatten(io_lib:format("~s.~w", [Grammar#gserver_grammar.grammarUrl, Type])).
 
 
+%%% Interprets a textual sentence and returns the result as a JSON object 
+%%% (using an Erlang representation).
 interpret_sentence(Grammar = #gserver_grammar{}, Sentence) ->
     Session = Grammar#gserver_grammar.session,
     Request = {Grammar#gserver_grammar.interpreterUrl, 
@@ -116,6 +112,19 @@ interpret_sentence(Grammar = #gserver_grammar{}, Sentence) ->
 
 
 %% Some utility functions
+
+server_url(Session, Path) ->
+    "http://" ++ Session#gserver_session.server ++ Path.
+
+server_request(Session, Path, Data) ->
+    server_request(Session, Path, Data, "application/x-www-form-urlencoded").
+server_request(Session, Path, Data, ContentType) ->
+    {server_url(Session, Path),  server_request_headers(Session), ContentType, Data}.
+
+
+server_request_headers(Session) ->
+    [auth_header(Session), {"Host", Session#gserver_session.server}].
+
 
 auth_header(Session) ->
     auth_header(Session#gserver_session.username, Session#gserver_session.password).
@@ -142,7 +151,7 @@ text_value(Path, Xml) ->
 
 test(Username, Password) ->
     inets:start(),
-    Session = create_session(Username, Password),
+    Session = connect(Username, Password),
     io:format("session = ~p~n", [Session]),
     ok = upload_grammar(Session, "digits.abnf", "#ABNF 1.0 ISO-8859-1;\n\nlanguage en-US;\ntag-format <semantics/1.0>;\n\nroot $digits;\n\npublic $digits  = \n@alt\n    @for (digit : digits)\n        @word digit\n    @end\n@end\n;"),
 
@@ -153,6 +162,6 @@ test(Username, Password) ->
     io:format("GrXML grammar Url = ~p~n", [grammar_url(Grammar, grxml)]),
     io:format("interpretation: ~p~n", [interpret_sentence(Grammar, "one")]),
 
-    delete_session(Session).
+    disconnect(Session).
 
 
