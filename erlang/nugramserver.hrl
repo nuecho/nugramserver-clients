@@ -1,4 +1,4 @@
-%%% File        : gserver_api.hrl
+%%% File        : nugramserver.hrl
 %%% Author      : Nu Echo Inc.
 %%% Description : NuGram Hosted Server API data structures
 %%

@@ -1,4 +1,4 @@
-%%% File        : gserver_api.erl
+%%% File        : nugramserverx.erl
 %%% Author      : Nu Echo Inc.
 %%% Description : NuGram Hosted Server API implementation
 %%
@@ -14,7 +14,7 @@
 % This module requires Yaws' JSON module.
 
 
--module(gserver_api).
+-module(nugramserver).
 
 
 %% Public API
@@ -29,7 +29,7 @@
 
 -export([test/2]).
 
--include("gserver_api.hrl").
+-include("nugramserver.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -define(GRAMMARSERVER_HOST, "www.grammarserver.com").
