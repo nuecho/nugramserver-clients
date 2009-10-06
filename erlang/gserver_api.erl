@@ -19,13 +19,13 @@
 
 %% Public API
 
--export([connect/2, connect/4,
+-export([create_session/2, create_session/4,
 	 disconnect/1, 
-	 upload_grammar/3,
-	 activate_grammar/2,
-	 instantiate_grammar/3,
+	 upload/3,
+	 activate/2,
+	 instantiate/3,
 	 grammar_url/1, grammar_url/2,
-	 interpret_sentence/2]).
+	 interpret/2]).
 
 -export([test/2]).
 
@@ -38,10 +38,10 @@
 
 %%% Initiates a new session with NuGram Hosted Server
 %%% Returns a tuple representing a session.
-connect(Username, Password) ->
-    connect(?GRAMMARSERVER_HOST, ?GRAMMARSERVER_PORT, Username, Password).
+create_session(Username, Password) ->
+    create_session(?GRAMMARSERVER_HOST, ?GRAMMARSERVER_PORT, Username, Password).
 
-connect(Host, Port, Username, Password)
+create_session(Host, Port, Username, Password)
   when is_integer(Port) andalso is_list(Host) ->
     Server = Host ++ ":" ++ integer_to_list(Port),
     Session = #gserver_session{server = Server, username = Username, password = Password},
@@ -60,7 +60,7 @@ disconnect(Session = #gserver_session{}) ->
 
 
 %%% Uploads a source grammar to NuGram Hosted Server
-upload_grammar(Session = #gserver_session{}, GrammarPath, Content) ->
+upload(Session = #gserver_session{}, GrammarPath, Content) ->
     Request = server_request(Session,
 			     "/grammar/" ++ yaws_api:url_encode(GrammarPath),
 			     Content,
@@ -69,11 +69,11 @@ upload_grammar(Session = #gserver_session{}, GrammarPath, Content) ->
     ok.
 
 %%% This method requests NuGram Hosted Server to load a static grammar.
-activate_grammar(Session = #gserver_session{}, GrammarPath) ->
-    instantiate_grammar(Session, GrammarPath, defaultObject).
+activate(Session = #gserver_session{}, GrammarPath) ->
+    instantiate(Session, GrammarPath, defaultObject).
 
 %%% This method instantiates a dynamic grammar and loads it.
-instantiate_grammar(Session = #gserver_session{}, GrammarPath, Context) ->
+instantiate(Session = #gserver_session{}, GrammarPath, Context) ->
     JsonObject = json_utils:expand(Context),
     Request = server_request(Session,
 			     "/grammar/" ++ Session#gserver_session.id ++ "/" ++ GrammarPath,
@@ -97,9 +97,19 @@ grammar_url(Grammar = #gserver_grammar{}, Type) when is_atom(Type) ->
     lists:flatten(io_lib:format("~s.~w", [Grammar#gserver_grammar.grammarUrl, Type])).
 
 
+%%% Returns the source code of the given instantiated grammar.
+grammar_content(Grammar = #gserver_grammar{}, Type) when is_atom(Type) ->
+    Url = grammar_url(Grammar, Type),
+    Session = Grammar#gserver_grammar.session,
+    Request = {Url, server_request_headers(Session)},
+    {ok, {{_, 200, _}, _, Content}} = http:request(get, Request,  [{timeout, 2000}], []),
+    Content.
+    
+
+
 %%% Interprets a textual sentence and returns the result as a JSON object 
 %%% (using an Erlang representation).
-interpret_sentence(Grammar = #gserver_grammar{}, Sentence) ->
+interpret(Grammar = #gserver_grammar{}, Sentence) ->
     Session = Grammar#gserver_grammar.session,
     Request = {Grammar#gserver_grammar.interpreterUrl, 
 	       server_request_headers(Session),
@@ -151,16 +161,17 @@ text_value(Path, Xml) ->
 
 test(Username, Password) ->
     inets:start(),
-    Session = connect(Username, Password),
+    Session = create_session(Username, Password),
     io:format("session = ~p~n", [Session]),
-    ok = upload_grammar(Session, "digits.abnf", "#ABNF 1.0 ISO-8859-1;\n\nlanguage en-US;\ntag-format <semantics/1.0>;\n\nroot $digits;\n\npublic $digits  = \n@alt\n    @for (digit : digits)\n        @word digit\n    @end\n@end\n;"),
+    ok = upload(Session, "digits.abnf", "#ABNF 1.0 ISO-8859-1;\n\nlanguage en-US;\ntag-format <semantics/1.0>;\n\nroot $digits;\n\npublic $digits  = \n@alt\n    @for (digit : digits)\n        @word digit\n    @end\n@end\n;"),
 
-    Grammar = instantiate_grammar(Session, "digits.abnf", [{digits, {"one", "two", "three"}}]),
+    Grammar = instantiate(Session, "digits.abnf", [{digits, {"one", "two", "three"}}]),
 
     io:format("grammar = ~p~n", [Grammar]),
     io:format("grammar Url = ~p~n", [grammar_url(Grammar)]),
+    io:format("grammar content = ~n~p~n", [grammar_content(Grammar, abnf)]),
     io:format("GrXML grammar Url = ~p~n", [grammar_url(Grammar, grxml)]),
-    io:format("interpretation: ~p~n", [interpret_sentence(Grammar, "one")]),
+    io:format("interpretation: ~p~n", [interpret(Grammar, "one")]),
 
     disconnect(Session).
 

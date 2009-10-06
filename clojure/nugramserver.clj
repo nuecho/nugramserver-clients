@@ -66,9 +66,9 @@
 	(throw (java.lang.RuntimeException. "Unable to connect with NuGram Server"))))
 
   
-(defn connect
+(defn create-session
   ([#^String username #^String password]
-   (connect *nugram-hosted-server* username password))
+   (create-session *nugram-hosted-server* username password))
   ([#^String host #^String username #^String password]
    (let [auth-str (.concat "Basic " (base64/encode-str (.concat username (.concat ":" password))))]
      (process-request 
@@ -116,7 +116,7 @@
 	   :interpreter-url interp-url})))))
 
 
-(defn load-grammar [session #^String path]
+(defn activate [session #^String path]
   (instantiate session path {}))
 
 
@@ -156,7 +156,7 @@
 
 
 (defn- api-test [username password]
-  (let [session (connect username password)]
+  (let [session (create-session username password)]
     (upload session "digits.abnf" "#ABNF 1.0 ISO-8859-1;\n\nlanguage en-US;\ntag-format <semantics/1.0>;\n\nroot $digits;\n\npublic $digits  = \n@alt\n    @for (digit : digits)\n        @word digit\n    @end\n@end\n;")
     (let [grammar (instantiate session "digits.abnf" {"digits" ["one" "two" "three"]})]
       (println (grammar-content grammar "abnf"))
