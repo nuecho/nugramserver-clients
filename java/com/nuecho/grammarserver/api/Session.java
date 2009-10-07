@@ -3,7 +3,6 @@ package com.nuecho.grammarserver.api;
 import java.io.IOException;
 
 import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 
 /**
  * Objects implementing this interface represent opened sessions with NuGram

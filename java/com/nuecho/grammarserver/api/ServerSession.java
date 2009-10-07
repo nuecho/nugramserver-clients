@@ -65,8 +65,10 @@ final class ServerSession implements Session
         try
         {
             Object context = new JSONParser().parse(jsonContext);
+            // just make sure that we have a valid JSON context
             assert context instanceof JSONObject;
-            return instantiate(grammarPath, (JSONObject) context);
+            return instantiateGrammar(grammarPath, jsonContext);
+        
         }
         catch (ParseException exception)
         {
@@ -74,12 +76,17 @@ final class ServerSession implements Session
         }
     }
 
-    @SuppressWarnings("unchecked")
     public InstantiatedGrammar instantiate(String grammarPath, JSONObject context) throws GrammarServerException
     {
-        String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + grammarPath;
-        String jsonContext = context.toJSONString();
+        assert context != null;
+        return instantiateGrammar(grammarPath, context.toJSONString());
+    }
 
+    @SuppressWarnings("unchecked")
+    private InstantiatedGrammar instantiateGrammar(String grammarPath, String jsonContext)
+            throws GrammarServerException
+    {
+        String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + grammarPath;
         Map data = new HashMap();
         data.put("responseFormat", "json");
         data.put("context", jsonContext);
