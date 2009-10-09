@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  NuGram Hosted Server client API in VoiceXML 2.1.
+
+  Copyright (C) 2009 Nu Echo Inc.
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+-->
+
+<vxml version="2.1" xmlns="http://www.w3.org/2001/vxml"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.w3.org/2001/vxml 
+   http://www.w3.org/TR/voicexml21/vxml.xsd">
+
+  <script src="nugramserver.js" />
+
+
+  <!-- 
+    Creates a new session with NuGram Hosted Server.
+
+    The parameters to pass to the subdialog are:
+      account - the NuGram Hosted Server account name
+      password - the password for the account
+
+    Returns an object whose only propery is 'nugram_session', 
+    an object to pass to other subdialog in this library.
+    -->
+  <form id="createSession">
+    <var name="account" />
+    <var name="password" />
+    <var name="server" expr="'www.grammarserver.com:8082'" />
+    
+
+    <block>
+      <var name="operation" expr="'POST'" />
+      <var name="resource" expr="'session'" />
+      <var name="nugram_session" />
+      <data name="response" srcexpr="'http://' + server + '/voiceXML'"
+	    method="post" namelist="account password operation resource" />
+      <script>
+	var sessionid = response.documentElement.attributes.getNamedItem('id').value;
+	nugram_session = new GrammarServer(server, account, password, sessionid);
+      </script>
+      <return namelist="nugram_session" />
+    </block>
+  </form>
+  
+  
+  <!-- 
+    Terminates the session with NuGram Hosted Server.
+
+    The parameters to pass to the subdialog are:
+      nugram_session - the session to terminate, an object
+                       returned by a call to the 'createSession' 
+		       subdialog
+    -->
+  <form id="disconnect">
+    <var name="nugram_session" />
+    
+    <block>
+      <var name="account" expr="nugram_session.account" />
+      <var name="password" expr="nugram_session.password" />
+      <var name="resource" expr="nugram_session.sessionUrl()" />
+      <var name="operation" expr="'DELETE'" />
+      
+      <data name="response" srcexpr="nugram_session.serverUrl()" method="post"
+	    namelist="account password operation resource" />
+      <var name="message" expr="'done'" />
+      <return namelist="message" />
+    </block>
+  </form>
+  
+
+  <!-- 
+    Instantiates a dynamic grammar with the given data (instantiation context).
+
+    The parameters to pass to the subdialog are:
+      nugram_session - the session to terminate, an object
+                       returned by a call to the 'createSession' 
+		       subdialog
+      grammarPath    - the name of the grammar to instantiate
+      context        - the data to use to instantiate the grammar, an ECMAScript
+                       object whose properties are the top-level variables
+		       referred to in the dynamic grammar template.
+
+    Returns an object whose only property is 'grammar_url', the URL
+    of the generated grammar. An extension can be appended to this URL
+    to retrieve the grammar in a specific format (like abnf, grxml, or gsl).
+    -->
+  <form id="instantiate">
+    <var name="nugram_session" />
+    <var name="grammarPath" />
+    <var name="context" />
+    
+    <block>
+      <var name="account" expr="nugram_session.account" />
+      <var name="password" expr="nugram_session.password" />
+      <var name="resource" expr="nugram_session.grammarUri(grammarPath)" />
+      <var name="operation" expr="'POST'" />
+      <var name="grammar_url" />
+      <assign name="context" expr="JSON.stringify(context)" />
+      
+      <data name="response" srcexpr="nugram_session.serverUrl()" method="post"
+	    namelist="account password operation resource context" />
+
+      <script>
+	 grammar_url = response.documentElement.attributes.getNamedItem('grammarUrl').value;
+      </script>
+      
+      <return namelist="grammar_url" />
+    </block>
+  </form>
+
+  <!-- 
+    Loads a static grammar on NuGram Hosted Server
+
+    The parameters to pass to the subdialog are:
+      nugram_session - the session to terminate, an object
+                       returned by a call to the 'createSession' 
+		       subdialog
+      grammarPath    - the name of the grammar to instantiate
+
+    Returns an object whose only property is 'grammar_url', the URL
+    of the loaded grammar. An extension can be appended to this URL
+    to retrieve the grammar in a specific format (like abnf, grxml, or gsl).
+    -->
+  <form id="load">
+    <var name="nugram_session" />
+    <var name="grammarPath" />
+    
+    <block>
+      <var name="account" expr="nugram_session.account" />
+      <var name="password" expr="nugram_session.password" />
+      <var name="resource" expr="nugram_session.grammarUri(grammarPath)" />
+      <var name="operation" expr="'POST'" />
+      <var name="grammar_url" />
+      <var name="context" expr="'{}'" />
+      
+      <data name="response" srcexpr="nugram_session.serverUrl()" method="post"
+	    namelist="account password operation resource context" />
+
+      <script>
+	 grammar_url = response.documentElement.attributes.getNamedItem('grammarUrl').value;
+      </script>
+      
+      <return namelist="grammar_url" />
+    </block>
+  </form>
+
+</vxml>

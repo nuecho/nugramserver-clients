@@ -1,0 +1,14 @@
+#ABNF 1.0 ISO-8859-1;
+
+language en-US;
+tag-format <semantics/1.0>;
+
+root $digits;
+
+public $digits  = 
+@alt
+    @for (digit : digits)
+        @word digit
+    @end
+@end
+;

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vxml version="2.1" xmlns="http://www.w3.org/2001/vxml"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.w3.org/2001/vxml 
+   http://www.w3.org/TR/voicexml21/vxml.xsd">
+
+  <!-- 
+    This test requires the grammar 'digits.abnf' to be published on 
+    NuGram Hosted Server.
+    -->
+
+  <var name="mysession" />
+
+  <form id="init">
+    <subdialog name="result" src="nugramserver.vxml#createSession">
+      <param name="account" expr="'XXXXX" />      <!-- <<<< CHANGE THIS -->
+      <param name="password" expr="'ZZZZZ" />     <!-- <<<< CHANGE THIS -->
+      
+      <filled>
+        <script>mysession = result.nugram_session;</script>
+        <goto next="#creategrammar" />
+      </filled>
+    </subdialog>
+  </form>
+  
+  <form id="creategrammar">
+    <var name="context" />
+    <script>
+      context = {digits: ["one", "two", "three"]};
+    </script>
+    
+    <subdialog name="grammar" src="nugramserver.vxml#instantiate">
+      <param name="nugram_session" expr="mysession" />
+      <param name="grammarPath" expr="'digits.abnf'" />
+      <param name="context" expr="context" />
+      
+      <filled>
+        <prompt>
+          Grammar is
+          <value expr="grammar.grammar_url" />
+        </prompt>
+        <goto next="#cleanup" />
+      </filled>
+    </subdialog>
+  </form>
+
+  
+  <form id="cleanup">
+    <subdialog name="disconnectResponse" src="nugramserver.vxml#disconnect">
+      <param name="nugram_session" expr="mysession" />
+      <filled>
+        <disconnect />
+      </filled>
+    </subdialog>
+  </form>
+
+</vxml>
