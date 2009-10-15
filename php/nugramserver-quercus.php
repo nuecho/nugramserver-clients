@@ -1,3 +1,4 @@
+<?php
 /*
  * NuGram Hosted Server client API in PHP.
  *
@@ -230,3 +231,4 @@ EOF;
   $session->disconnect();
 }
 
+?>
