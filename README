@@ -6,6 +6,7 @@ The supported languages are currently:
 	- javascript (ECMAScript)
 	- Python/Jython
 	- Ruby/JRuby
+	- PHP (Quercus)
 	- Erlang
 	- Clojure
 
