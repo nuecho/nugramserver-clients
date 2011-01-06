@@ -30,6 +30,7 @@
 %% Public API
 
 -export([create_session/2, create_session/4,
+         session/3, session/5,
 	 disconnect/1, 
 	 upload/3,
 	 activate/2,
@@ -60,6 +61,16 @@ create_session(Host, Port, Username, Password)
     Id = attribute_value("/session/@id", parse_xml(Content)),
     Session#gserver_session{id = Id}.
 
+
+%%% Creates a session object
+session(Username, Password, SessionId) ->
+    session(?GRAMMARSERVER_HOST, ?GRAMMARSERVER_PORT, Username, Password, SessionId).
+
+session(Host, Port, Username, Password, SessionId)
+  when is_integer(Port) andalso is_list(Host) ->
+    Server = Host ++ ":" ++ integer_to_list(Port),
+    #gserver_session{server = Server, username = Username, password = Password, id = SessionId}.
+    
 
 %%% Terminates the session with NuGram Hosted Server.
 disconnect(Session = #gserver_session{}) ->

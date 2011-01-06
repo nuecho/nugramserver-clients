@@ -21,8 +21,7 @@ public class GrammarServerTest
         String username = args[0];
         String password = args[1];
 
-        GrammarServer server = new GrammarServer();
-        Session session = server.createSession(username, password);
+        Session session = new GrammarServer().session(username, password, "test");
         System.out.println("NuGram Hosted Server session ID = " + session.getSessionId());
 
         session.upload("digits.abnf", GRAMMAR);

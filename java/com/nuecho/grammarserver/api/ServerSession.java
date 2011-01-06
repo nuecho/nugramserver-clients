@@ -28,6 +28,13 @@ final class ServerSession implements Session
         initializeSession();
     }
 
+    ServerSession(GrammarServer server, String username, String password, String sessionId)
+    {
+        mServer = server;
+        mAuthToken = (new Base64()).encode((username + ":" + password).getBytes());
+        mSessionId = sessionId;
+    }
+
     ServerSession(GrammarServer server, String username, String password) throws GrammarServerException
     {
         this(server, (new Base64()).encode((username + ":" + password).getBytes()));

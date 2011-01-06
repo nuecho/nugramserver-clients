@@ -72,6 +72,9 @@ class GrammarServer:
     def create_session(self, username, password):
         return Session(self, username, password)
 
+    def session(self, username, password, sessionid):
+        return Session(self, username, password, sessionid)
+
     def get_url():
         return 'http://' + self.host + ':' + self.port
 
@@ -81,12 +84,13 @@ class GrammarServer:
 
 class Session:
 
-    def __init__(self, server, username, password):
+    def __init__(self, server, username, password, sessionid = None):
         self.server = server
         self.username = username
         self.password = password
-        self.sessionId = None
-        self.initialize()
+        self.sessionId = sessionid
+        if sessionid == None:
+            self.initialize()
 
 
     def get_auth(self):

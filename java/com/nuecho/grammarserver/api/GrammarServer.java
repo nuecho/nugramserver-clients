@@ -74,6 +74,12 @@ public final class GrammarServer
         }
     }
 
+    public Session session(String username, String password, String sessionId) throws GrammarServerException
+    {
+        assert sessionId != null;
+        return new ServerSession(this, username, password, sessionId);
+    }
+
     /**
      * Creates a new session on NuGram Hosted Server.
      * 

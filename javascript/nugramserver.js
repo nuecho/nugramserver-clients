@@ -75,18 +75,29 @@ GrammarServer.prototype.getUrl = function () {
 **/
     
 GrammarServer.prototype.createSession = function(username, password) {
-	var authToken = username;
-	if (password) {
+    var authToken = username;
+    if (password) {
     	var authToken = Base64.encode(username + ":" + password);
-   	}
+    }
     return new GrammarServerSession(this, authToken);
 };
 
-function GrammarServerSession(server, authToken) {
+GrammarServer.prototype.session = function(username, password, sessionid) {
+    var authToken = username;
+    if (password) {
+        var authToken = Base64.encode(username + ":" + password);
+    }
+    return new GrammarServerSession(this, authToken, sessionid);
+};
+
+function GrammarServerSession(server, authToken, sessionid) {
     this.server = server;
     this.authToken = authToken;
     this.state = 'disconnected';
-    this.sessionId = false;
+    this.sessionId = sessionid;
+    if (sessionid != undefined) {
+        return
+    }
 
     var result = __http_request(server.getUrl() + '/session', 'POST', authToken, {responseFormat: 'json'});
     if (result) {
@@ -294,7 +305,7 @@ public $digits  = \n\
     gserver = new GrammarServer();
 
     print("Creating session....");
-    session = gserver.createSession(username, password);
+    session = gserver.session(username, password, "test");
     print("Uploading grammar");
     session.upload("digits.abnf", DIGITS_GRAMMAR);
 
