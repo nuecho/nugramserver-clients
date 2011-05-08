@@ -47,10 +47,10 @@
 **/
 function GrammarServer(server, port, secure) {
     if (!server) server = 'www.grammarserver.com';
-    if (!port) port = 8082;
+    if (!port) port = 80;
 
-    var protocol = secure ? "https://" : "http://";
-    if (port == undefined) {
+    var protocol = (secure || port == 443) ? "https://" : "http://";
+    if (port == undefined || port == 443) {
 	this.url = protocol + server;
     }
     else {
@@ -99,7 +99,7 @@ function GrammarServerSession(server, authToken, sessionid) {
         return
     }
 
-    var result = __http_request(server.getUrl() + '/session', 'POST', authToken, {responseFormat: 'json'});
+    var result = __http_request(server.getUrl() + '/api/session', 'POST', authToken, {responseFormat: 'json'});
     if (result) {
         this.state = 'connected';
         this.sessionId = JSON.parse(result).session.id;
@@ -123,7 +123,7 @@ GrammarServerSession.prototype.getSessionId = function() {
    (see http://nugram.nuecho.com:8081/help/topic/com.nuecho.plugin.grammaride.doc/doc/html/abnf_publishing.html)
 **/
 GrammarServerSession.prototype.upload = function(grammarPath, content) {
-    var result = __http_request(this.server.getUrl() + "/grammar/" + grammarPath, 'PUT', this.authToken, undefined, content);
+    var result = __http_request(this.server.getUrl() + "/api/grammar/" + grammarPath, 'PUT', this.authToken, undefined, content);
     if (result) {
         return JSON.parse(result);
     }
@@ -157,7 +157,7 @@ GrammarServerSession.prototype.load = function(grammarPath) {
 GrammarServerSession.prototype.instantiate = function (grammarPath, data) {
     if (this.sessionId) {
         var jsonData = JSON.stringify(data);
-        var result = __http_request(this.server.getUrl() + "/grammar/" + this.sessionId + "/"  + grammarPath, 
+        var result = __http_request(this.server.getUrl() + "/api/grammar/" + this.sessionId + "/"  + grammarPath, 
                                     'POST', this.authToken, {context: jsonData, responseFormat: 'json'});
         if (result) {
             var jsonResult = JSON.parse(result);
@@ -175,7 +175,7 @@ GrammarServerSession.prototype.instantiate = function (grammarPath, data) {
 **/
 GrammarServerSession.prototype.disconnect = function() {
     this.state = 'disconnected';
-    __http_request(this.server.getUrl() + '/session/' + this.sessionId, 'DELETE', this.authToken);
+    __http_request(this.server.getUrl() + '/api/session/' + this.sessionId, 'DELETE', this.authToken);
 };
 
 

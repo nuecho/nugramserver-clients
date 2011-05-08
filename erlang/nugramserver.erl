@@ -44,7 +44,7 @@
 -include_lib("xmerl/include/xmerl.hrl").
 
 -define(GRAMMARSERVER_HOST, "www.grammarserver.com").
--define(GRAMMARSERVER_PORT, 8082).
+-define(GRAMMARSERVER_PORT, 443).
 
 
 %%% Initiates a new session with NuGram Hosted Server
@@ -56,7 +56,7 @@ create_session(Host, Port, Username, Password)
   when is_integer(Port) andalso is_list(Host) ->
     Server = Host ++ ":" ++ integer_to_list(Port),
     Session = #gserver_session{server = Server, username = Username, password = Password},
-    Request = server_request(Session, "/session", ""),
+    Request = server_request(Session, "/api/session", ""),
     {ok, {{_,201,_}, _Headers, Content}} = http:request(post, Request, [{timeout, 2000}], []),
     Id = attribute_value("/session/@id", parse_xml(Content)),
     Session#gserver_session{id = Id}.
@@ -74,7 +74,7 @@ session(Host, Port, Username, Password, SessionId)
 
 %%% Terminates the session with NuGram Hosted Server.
 disconnect(Session = #gserver_session{}) ->
-    Request = {server_url(Session, "/session/" ++ Session#gserver_session.id), 
+    Request = {server_url(Session, "/api/session/" ++ Session#gserver_session.id), 
 	       server_request_headers(Session)},
     {ok, {{_,200,_}, _Headers, _Content}} = http:request(delete, Request, [{timeout, 2000}], []),
     ok.
@@ -83,7 +83,7 @@ disconnect(Session = #gserver_session{}) ->
 %%% Uploads a source grammar to NuGram Hosted Server
 upload(Session = #gserver_session{}, GrammarPath, Content) ->
     Request = server_request(Session,
-			     "/grammar/" ++ yaws_api:url_encode(GrammarPath),
+			     "/api/grammar/" ++ url_encode(GrammarPath),
 			     Content,
 			     "text/basic"),
     {ok, {{_, 201, _}, _, _}} = http:request(put, Request, [{timeout, 2000}], []),
@@ -97,8 +97,8 @@ activate(Session = #gserver_session{}, GrammarPath) ->
 instantiate(Session = #gserver_session{}, GrammarPath, Context) ->
     JsonObject = json_utils:expand(Context),
     Request = server_request(Session,
-			     "/grammar/" ++ Session#gserver_session.id ++ "/" ++ GrammarPath,
-			     "context=" ++ yaws_api:url_encode(lists:flatten(json:encode(JsonObject)))),
+			     "/api/grammar/" ++ Session#gserver_session.id ++ "/" ++ GrammarPath,
+			     "context=" ++ url_encode(lists:flatten(json:encode(JsonObject)))),
     {ok, {{_,201,_}, _, Content}} = http:request(post, Request,  [{timeout, 2000}], []),
     Xml = parse_xml(Content),
     GrammarUrl = attribute_value("/grammar/@grammarUrl", Xml),
@@ -135,7 +135,7 @@ interpret(Grammar = #gserver_grammar{}, Sentence) ->
     Request = {Grammar#gserver_grammar.interpreterUrl, 
 	       server_request_headers(Session),
 	       "application/x-www-form-urlencoded", 
-	       "sentence=" ++ yaws_api:url_encode(Sentence)},
+	       "sentence=" ++ url_encode(Sentence)},
     {ok, {_, _, Content}} = http:request(post, Request,  [{timeout, 2000}], []),
     {ok, Interpretation} = json:decode_string(text_value("/interpretation/text()", parse_xml(Content))),
     json_utils:simplify(Interpretation).
@@ -145,7 +145,7 @@ interpret(Grammar = #gserver_grammar{}, Sentence) ->
 %% Some utility functions
 
 server_url(Session, Path) ->
-    "http://" ++ Session#gserver_session.server ++ Path.
+    "https://" ++ Session#gserver_session.server ++ Path.
 
 server_request(Session, Path, Data) ->
     server_request(Session, Path, Data, "application/x-www-form-urlencoded").
@@ -196,4 +196,46 @@ test(Username, Password) ->
 
     disconnect(Session).
 
+
+%% Code stolen from Yaws (yaws.hyber.org)
+
+url_encode([H|T]) ->
+    if
+        H >= $a, $z >= H ->
+            [H|url_encode(T)];
+        H >= $A, $Z >= H ->
+            [H|url_encode(T)];
+        H >= $0, $9 >= H ->
+            [H|url_encode(T)];
+        H == $_; H == $.; H == $-; H == $/; H == $: -> % FIXME: more..
+            [H|url_encode(T)];
+        true ->
+            case integer_to_hex(H) of
+                [X, Y] ->
+                    [$%, X, Y | url_encode(T)];
+                [X] ->
+                    [$%, $0, X | url_encode(T)]
+            end
+     end;
+
+url_encode([]) ->
+    [].
+
+
+integer_to_hex(I) ->
+    case catch erlang:integer_to_list(I, 16) of
+        {'EXIT', _} ->
+            old_integer_to_hex(I);
+        Int ->
+            Int
+    end.
+
+
+old_integer_to_hex(I) when I<10 ->
+    integer_to_list(I);
+old_integer_to_hex(I) when I<16 ->
+    [I-10+$A];
+old_integer_to_hex(I) when I>=16 ->
+    N = trunc(I/16),
+    old_integer_to_hex(N) ++ old_integer_to_hex(I rem 16).
 

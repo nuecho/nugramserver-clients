@@ -57,8 +57,8 @@ class GetGrammarError(Error):
     pass
 
 
-DEFAULT_GSERVER_HOST = 'www.grammarserver.com'
-DEFAULT_GSERVER_PORT = 8082
+DEFAULT_GSERVER_HOST = "www.grammarserver.com"
+DEFAULT_GSERVER_PORT = 443
 
 
 ## An object of this class acts as a proxy to NuGram Hosted Server.
@@ -76,7 +76,7 @@ class GrammarServer:
         return Session(self, username, password, sessionid)
 
     def get_url():
-        return 'http://' + self.host + ':' + self.port
+        return "https://" + self.host + ":" + self.port
 
 
 
@@ -103,10 +103,9 @@ class Session:
         else:
             data = urllib.urlencode(data)
 
-        connection = httplib.HTTPConnection(self.server.host, self.server.port)
-        connection.request(
-                mode, url, body=data,
-                headers={'Authorization': 'Basic ' + self.get_auth()})
+        connection = httplib.HTTPSConnection(self.server.host, self.server.port)
+        connection.request(mode, '/api' + url, body=data, headers={'Authorization': 'Basic ' + self.get_auth()})
+
         response = connection.getresponse()
         return response.status, response.read()
 
