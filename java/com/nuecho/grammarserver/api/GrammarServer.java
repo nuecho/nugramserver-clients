@@ -10,7 +10,7 @@ import java.io.IOException;
 public final class GrammarServer
 {
     private static final String DEFAULT_GRAMMARSERVER_SERVER = "www.grammarserver.com";
-    private static final int DEFAULT_GRAMMARSERVER_PORT = 8082;
+    private static final int DEFAULT_GRAMMARSERVER_PORT = 443;
 
     private String mServerName;
     private int mPort;
@@ -50,7 +50,12 @@ public final class GrammarServer
      */
     public String getUrl()
     {
-        return "http://" + mServerName + ":" + mPort;
+        if (mPort != DEFAULT_GRAMMARSERVER_PORT) {
+            return "https://" + mServerName + ":" + mPort;
+        }
+        else {
+            return "https://" + mServerName;
+        }
     }
 
     /**

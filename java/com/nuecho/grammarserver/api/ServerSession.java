@@ -33,7 +33,7 @@ final class ServerSession implements Session
 
     private void initializeSession() throws IOException
     {
-        String url = mServer.getUrl() + "/session";
+        String url = mServer.getUrl() + "/api/session";
         String answer = sendHttpRequest(url, "POST", true, null, "responseFormat=json");
         JSONObject session = (JSONObject) JSONValue.parse(answer);
         
@@ -47,7 +47,7 @@ final class ServerSession implements Session
 
     public void disconnect()
     {
-        String url = mServer.getUrl() + "/session/" + mSessionId;
+        String url = mServer.getUrl() + "/api/session/" + mSessionId;
         try
         {
             sendHttpRequest(url, "DELETE", true, null, null);
@@ -61,7 +61,7 @@ final class ServerSession implements Session
     @SuppressWarnings("unchecked")
     public InstantiatedGrammar instantiate(String grammarPath, JSONObject context) throws IOException
     {
-        String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + grammarPath;
+        String url = mServer.getUrl() + "/api/grammar/" + mSessionId + "/" + grammarPath;
         String jsonContext = context.toJSONString();
 
         Map data = new HashMap();
@@ -80,7 +80,7 @@ final class ServerSession implements Session
 
     public void upload(String grammarPath, String content) throws IOException
     {
-        String url = mServer.getUrl() + "/grammar/" + grammarPath;
+        String url = mServer.getUrl() + "/api/grammar/" + grammarPath;
         sendHttpRequest(url, "PUT", true, null, content);
     }
 
@@ -166,7 +166,7 @@ final class ServerSession implements Session
         public Object interpret(String sentence) throws IOException
         {
             assert (sentence != null);
-            String url = mServer.getUrl() + "/interpretation/" + mSessionId + "/" + mData.get("id");
+            String url = mServer.getUrl() + "/api/interpretation/" + mSessionId + "/" + mData.get("id");
             JSONObject data = new JSONObject();
             data.put("sentence", sentence);
             data.put("responseFormat", "json");
@@ -184,7 +184,7 @@ final class ServerSession implements Session
         public String getUrl(String format)
         {
             assert (format == null || format.equals("abnf") || format.equals("grxml") || format.equals("gsl"));
-            String url = mServer.getUrl() + "/grammar/" + mSessionId + "/" + mData.get("id");
+            String url = mServer.getUrl() + "/api/grammar/" + mSessionId + "/" + mData.get("id");
             if (format != null)
             {
                 url += "." + format;

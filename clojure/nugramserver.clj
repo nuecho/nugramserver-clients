@@ -20,14 +20,13 @@
     (:require [clojure.contrib.http.agent :as h-a]
 	      [clojure.contrib.base64 :as base64]
 	      [clojure.contrib.str-utils :as str]
-	      [clojure.contrib.json.read :as jsread]
-	      [clojure.contrib.json.write :as jswrite]))
+	      [clojure.contrib.json :as json]))
 
 
 
 (def *default-grammar-extension* "abnf")
 (def *supported-grammar-formats* #{"abnf" "grxml" "gsl"})
-(def *nugram-hosted-server* "www.grammarserver.com:8082")
+(def *nugram-hosted-server* "www.grammarserver.com")
 
 
 (defn- first-arg-type [arg & rest]
@@ -40,7 +39,7 @@
 (defmethod server-url java.util.Map [session path]
   (server-url (:host session) path))
 (defmethod server-url String [host path]
-  (.concat "http://" (.concat host path)))
+  (.concat "https://" (.concat host path)))
 
 
 (defn server-request
@@ -72,11 +71,11 @@
   ([#^String host #^String username #^String password]
    (let [auth-str (.concat "Basic " (base64/encode-str (.concat username (.concat ":" password))))]
      (process-request 
-      (server-request {:host host :auth-str auth-str} "/session" "POST" "responseFormat=json")
+      (server-request {:host host :auth-str auth-str} "/api/session" "POST" "responseFormat=json")
       (fn [body]
-	  (let [json-response (jsread/read-json body)
-		session       (get json-response "session")
-		session-id    (get session "id")]
+	  (let [json-response (json/read-json body)
+		session       (get json-response :session)
+		session-id    (get session :id)]
 	    {:type       :NuGramServerSession
 	    :host        host
 	    :session-id  session-id
@@ -86,30 +85,33 @@
 (defn disconnect [session]
   (check-type session :NuGramServerSession)
   (process-request
-   (server-request session (.concat "/session/" (:session-id session)) "DELETE")
+   (server-request session (.concat "/api/session/" (:session-id session)) "DELETE")
    (fn [body] true)))
 
 
 (defn upload [session #^String path #^String content]
   (check-type session :NuGramServerSession)
   (process-request
-   (server-request session (.concat "/grammar/" path) "PUT" content)
+   (server-request session (.concat "/api/grammar/" path) "PUT" content)
    (fn [body] true)))
 
 
 (defn instantiate [session #^String path context]
   (check-type session :NuGramServerSession)
-  (let [json-context (jswrite/json-str context)]
+  (let [json-context (json/json-str context)]
     (process-request
      (server-request session
-		     (str/str-join "/" ["" "grammar" (:session-id session) path])
+		     (str/str-join "/" ["" "api" "grammar" (:session-id session) path])
 		     "POST"
 		     (.concat "responseFormat=json&context=" json-context))
      (fn [body]
-	 (let [json-response (jsread/read-json body)
-	       grammar       (get json-response "grammar")
-	       grammar-url   (get grammar "grammarUrl")
-	       interp-url    (get grammar "interpreterUrl")]
+	 (let [json-response (json/read-json body)
+	       grammar       (get json-response :grammar)
+	       grammar-url   (get grammar :grammarUrl)
+	       interp-url    (get grammar :interpreterUrl)]
+           (println json-response)
+           (println grammar)
+           (println grammar-url)
 	   {:type :InstantiatedGrammar
 	   :session session
 	   :grammar-url grammar-url
@@ -150,12 +152,12 @@
 		   (.concat "responseFormat=json&sentence=" sentence)
 		   true)
    (fn [body]
-       (let [json-response  (jsread/read-json body)]
-	  (get json-response "interpretation")))))
+       (let [json-response  (json/read-json body)]
+         (get json-response :interpretation)))))
 
 
 
-(defn- api-test [username password]
+(defn api-test [username password]
   (let [session (create-session username password)]
     (upload session "digits.abnf" "#ABNF 1.0 ISO-8859-1;\n\nlanguage en-US;\ntag-format <semantics/1.0>;\n\nroot $digits;\n\npublic $digits  = \n@alt\n    @for (digit : digits)\n        @word digit\n    @end\n@end\n;")
     (let [grammar (instantiate session "digits.abnf" {"digits" ["one" "two" "three"]})]
