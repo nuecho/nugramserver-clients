@@ -223,7 +223,7 @@ public $digits  =
 
 
 server = GrammarServer.new()
-session = server.create_session("fpinard", "z")
+session = server.create_session("username", "password")
 session.upload("digits2.abnf", dyngrammar);
 grammar = session.instantiate("digits2.abnf", {})
 puts "grammar url = ", grammar.get_url('grxml')
